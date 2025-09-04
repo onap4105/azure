@@ -2,23 +2,7 @@
 
 Purpose: Inventory every outbound (and key inbound) dependency before removing Azure Firewall and adopting the Network Isolated AKS pattern. Use this as a living document. Each row represents a logical dependency (service + domain + purpose). 
 
-## 1. Primary Table (Minimal Columns)
-
-|Category|Service / Function|FQDN / Domain|Protocol|Port(s)|Namespace|Workload|Access Mode|Private Link Available|Current Path|Future Path|Criticality|Usage Pattern|Plan|Phase|Status|Risk If Blocked|Mitigation|Owner Tech|Verified|
-|--------|------------------|-------------|--------|-------|---------|--------|-----------|----------------------|------------|-----------|-----------|-------------|----|-----|------|---------------|----------|-----------|---------|
-|Azure Core|AKS Control Plane|management.azure.com|HTTPS|443|N/A|Cluster Ops|Public|Yes (Service Tags)|Firewall|Service Tags Allow|Blocker|Continuous|Privatize|1|Validated|Cluster mgmt fails|Allow service tag|Platform Team|Y|
-|Registry|ACR|myacr.azurecr.io|HTTPS|443|all|image pulls|PrivateLink|Yes|Firewall|PrivateLink|Blocker|Boot/Burst|Privatize|2|In Progress|Image pulls fail|Create PE + DNS|Platform|N|
-|Secrets|Key Vault|mykv.vault.azure.net|HTTPS|443|prod|apps|PrivateLink|Yes|Firewall|PrivateLink|High|Periodic|Privatize|2|Planned|Secret fetch fail|Enable PE|Security|N|
-|OS Updates|Ubuntu Archive|archive.ubuntu.com|HTTPS|80/443|nodepool|node|Public|No|Firewall|Mirror/Proxy|Medium|Boot/Periodic|Mirror|1|Planned|Patch lag|Apt proxy|Infra|N|
-|Packages|PyPI|pypi.org|HTTPS|443|ml|trainer|Public|No|Firewall|Proxy|Medium|Build|Proxy|2|Planned|Build failures|Internal cache|DevEx|N|
-|Monitoring|Log Analytics Ingest|*.ods.opinsights.azure.com|HTTPS|443|kube-system|ama-agent|PrivateLink|Yes (workspace)|Firewall|PrivateLink|High|Continuous|Privatize|2|In Progress|Logging loss|Enable PE|Observability|N|
-|Certs|LetsEncrypt ACME|acme-v02.api.letsencrypt.org|HTTPS|443|ingress|cert-manager|Public|No|Firewall|EgressGW|High|Periodic|Keep Public via GW|3|Planned|Cert expiry|ACME DNS-01 alt|Platform|N|
-|CRL/OCSP|DigiCert OCSP|ocsp.digicert.com|HTTP|80|all|various|Public|No|Firewall|EgressGW|Medium|Periodic|Keep Public|3|Planned|Revocation checks fail|Cache / allowlist|Security|N|
-|GitHub|GitHub API|api.github.com|HTTPS|443|ci|runners|Public|No|Firewall|Proxy|Medium|Build|Proxy|2|Planned|CI fail|Enterprise proxy|DevOps|N|
-
-Phase legend: 0-Discovery, 1-Hardening, 2-Egress Shrink, 3-Cutover, 4-Optimize
-
-## 1a. Full Extended Table (All Columns)
+## 1. Full Extended Table (All Columns)
 Complete superset of columns for detailed tracking. Use this when you need the full operational view (may wrap horizontally in some viewers).
 
 |Category|Service / Function|FQDN / Domain|Exact Host|IP|Protocol|Port(s)|Direction|AKS Layer|Namespace|Workload|Container Image|Image Registry|Access Mode|Private Link Available|Current Path|Future Path|Requires DNS|DNS Zone|Auth Method|Data Sensitivity|Criticality|Usage Pattern|Avg Frequency|Last Seen|Volume|Fallback / Cache|Can Mirror/Proxy|Plan|Migration Phase|Status|Risk If Blocked|Mitigation|Owner (Business)|Owner (Technical)|Approval Ticket / Ref|Policy Rule ID|NetPol / Cilium Policy Ref|Logging Source|Verification Method|Verified|Decommission Candidate|Notes|
