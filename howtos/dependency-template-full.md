@@ -2,8 +2,7 @@
 
 Purpose: Inventory every outbound (and key inbound) dependency before removing Azure Firewall and adopting the Network Isolated AKS pattern. Use this as a living document. Each row represents a logical dependency (service + domain + purpose). 
 
-## 1. Full Extended Table (All Columns)
-Complete superset of columns for detailed tracking. Use this when you need the full operational view (may wrap horizontally in some viewers).
+## 1. Complete superset of columns for detailed tracking. Use this when you need the full operational view (may wrap horizontally in some viewers).
 
 |Category|Service / Function|FQDN / Domain|Exact Host|IP|Protocol|Port(s)|Direction|AKS Layer|Namespace|Workload|Container Image|Image Registry|Access Mode|Private Link Available|Current Path|Future Path|Requires DNS|DNS Zone|Auth Method|Data Sensitivity|Criticality|Usage Pattern|Avg Frequency|Last Seen|Volume|Fallback / Cache|Can Mirror/Proxy|Plan|Migration Phase|Status|Risk If Blocked|Mitigation|Owner (Business)|Owner (Technical)|Approval Ticket / Ref|Policy Rule ID|NetPol / Cilium Policy Ref|Logging Source|Verification Method|Verified|Decommission Candidate|Notes|
 |--------|------------------|-------------|----------|--|--------|-------|---------|---------|---------|--------|---------------|--------------|-----------|----------------------|------------|-----------|------------|--------|-----------|---------------|-----------|-------------|-------------|---------|------|---------------|---------------|----|---------------|------|---------------|----------------|------------------|------------------|----------------------|--------------|-----------------------|----------|----------------------|-----|----------------------|-----|
