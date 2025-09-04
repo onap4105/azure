@@ -1,0 +1,8 @@
+I want to discontinue the use of AKS firewall to restrict outbound traffic from the cluster.
+
+Another PC pattern is currently under work and will be GA in 1Q2025. 
+This pattern is asking us to use Network isolated Azure Kubernetes Service (AKS) clusters [Network isolated AKS clusters - Azure Kubernetes Service | Microsoft Learn|https://learn.microsoft.com/en-us/azure/aks/concepts-network-isolated]
+
+we will need analyze impact of discontinue firewall across all usecase and all components currently we are using.
+
+please analyze dependencies and issues what you think and any alternative solution?
