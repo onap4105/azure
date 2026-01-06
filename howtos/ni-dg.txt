@@ -1,0 +1,86 @@
+Table of Contents
+Introduction
+Comparison Between Non-Network Isolated AKS and Network Isolated AKS
+Necessary Changes:
+Process:
+Pipeline Run process:
+Validation:
+References:
+
+Introduction
+Currently we set outbound type of the cluster to userDefinedRouting to force outbound traffic through the firewall and then configure FQDN restrictions on outbound traffic. while Azure Firewall can be used to define egress restrictions on clusters with outbound requests, network isolated clusters go further on secure-by-default posture by eliminating or blocking the outbound requests altogether.
+
+This document describes high level what all changes we need to make it to work for NI AKS Cluster.
+
+Comparison Between Non-Network Isolated AKS and Network Isolated AKS
+
+
+Outbound Types*
+
+loadBalancer, managedNATGateway,, userAssignedNATGateway, userDefinedRouting
+None
+
+Bootstrap Artifact Source
+Direct
+Cache
+
+Internet-Egress
+Explicitly established with AzureFirewall
+Not required for bootstrapping and add-ons. Explicit egress paths can be established with Azure Firewall, Proxy.
+
+*The outbound type impacts only the egress traffic of cluster. Outbound types highlighted in bold are prevalent at AT&T.
+
+Necessary Changes:
+1. Change Outbound type of none 
+2. only NodeImage and None upgrade channels are currently supported for network isolated clusters.
+3. If you are using Azure Container Storage Interface (CSI) driver for Azure Files and Blob storage, you must create a custom storage class with "networkEndpointType: privateEndpoint", see examples in Azure Files storage classes and Azure Blob storage classes. this involves recreating PVC with new SC. Enhance storageclass custom Layer types to include Storage class parameters for dynamic PersistentVolumes.
+4. Network Isolated AKS migration will require 3 rounds of node reimaging. This approach helps minimize potential issues or disruptions during deployment.
+5. Applications having active/passive or active/active or any canary setups can switch to a DR site.
+6. NSAS env. with Mobility Transit we need to retain AzureFirewall . There is a valid business justification for retaining it, you must convert to Network Isolated (NI) by changing outbound type to “none” and submit an exception request to retain the Azure Firewall using the form Migration Plan Submission Form.
+
+
+7. Needed AKS version 1.30 and above
+8. Ensure before all Current all platform deployments updated to use Jfrog (Trupti changes) including astra container inspect and sentinelone and nodelocaldns etc
+9. Ensure all current Firewall based URLs are going thru Bastion proxy instead of Firewall
+10. Compile a list of application endpoints that are currently accessible and need to be validated for both pre- and post-implementation testing
+11. azcli version 2.71+ 
+12. Ensure that PDBs configured with allowedDisruptions: 0 are backed up and deleted to prevent them from blocking node draining during node re-imaging. Restore them after the migration is complete.
+
+Process:
+
+1. ACR add new cache repo:  az acr cache create -n aks-managed-mcr -r ${REGISTRY_NAME} -g ${RESOURCE_GROUP} --source-repo "mcr.microsoft.com/*" --target-repo "aks-managed-repository/*"
+
+2. Useful Commands and Steps to detect if any still references for images pulled from internet or any public repositories other than acr or jfrog.
+kubectl get pods,daemonsets,deployments,statefulsets --all-namespaces --field-selector metadata.namespace!=kube-system,metadata.namespace!=kube-public -o custom-columns="NAMESPACE:.metadata.namespace,KIND:kind,NAME:.metadata.name,IMAGE:.spec.containers[*].image" | grep -v '\.azurecr\.io' | grep -v '\.it\.att\.com'| sort | uniq
+
+
+1. If your cluster has PodDisruptionBudgets (PDB) with “0” allowed disruptions, follow PodDisruptionBudgets (PDB) to backup before upgrading node-images and restore later.
+
+2. az aks update --resource-group ${RESOURCE_GROUP} --name ${AKS_NAME} --bootstrap-artifact-source Cache --bootstrap-container-registry-resource-id ${REGISTRY_ID} → Pipeline Run
+3. Then you need to manually reimage all the exisiting nodepools:  az aks upgrade --resource-group ${RESOURCE_GROUP} --name ${AKS_NAME} --node-image-only → Manual Reimage can be done
+4. You need to ensure the outbound exists until the first reimage completes. To check if the reimage completes, run:
+5. NODEPOOLS=$(az aks nodepool list --resource-group "${RESOURCE_GROUP}" --cluster-name "${AKS_NAME}" --query "[].name" -o tsv)
+for NODEPOOL in $NODEPOOLS; do
+echo "Waiting for node pool $NODEPOOL to finish upgrading..."
+az aks nodepool wait --resource-group "${RESOURCE_GROUP}" --cluster-name "${AKS_NAME}" --name "$NODEPOOL" --updated
+echo "Node pool $NODEPOOL upgrade succeeded."
+done
+6.  Wait and ensure the reimage completes, then run the following command to update outbound-type:
+
+            az aks update --resource-group ${RESOURCE_GROUP} --name ${AKS_NAME} --outbound-type none → Rerun Pipeline
+
+Validation:
+To validate the network isolated cluster feature is enabled, use the `az aks show command
+
+az aks show --resource-group ${RESOURCE_GROUP} --name ${AKS_NAME}
+
+The following output shows that the feature is enabled, based on the values of the outboundType property (none or blocked) and artifactSource property (Cached).
+
+It should show as 
+
+
+
+properties": { ... "networkProfile": { ... "outboundType": "none", ... }, ... "bootstrapProfile": { "artifactSource": "Cache", "containerRegistryId": "/subscriptions/my-subscription-id/my-node-resource-group-name/providers/Microsoft.ContainerRegistry/registries/my-registry-name" }, ... } 
+
+
+
