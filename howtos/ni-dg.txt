@@ -82,5 +82,8 @@ It should show as
 
 properties": { ... "networkProfile": { ... "outboundType": "none", ... }, ... "bootstrapProfile": { "artifactSource": "Cache", "containerRegistryId": "/subscriptions/my-subscription-id/my-node-resource-group-name/providers/Microsoft.ContainerRegistry/registries/my-registry-name" }, ... } 
 
+reference
+https://att.sharepoint.com/sites/PublicCloud/SitePages/NI-AKS-Brownfield-In-place-Migration.aspx
+https://learn.microsoft.com/en-us/azure/aks/network-isolated?pivots=byo-acr
 
 
